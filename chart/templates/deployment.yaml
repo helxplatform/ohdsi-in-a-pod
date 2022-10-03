@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ohdsi-inap.fullname" . }}
+  labels:
+    {{- include "ohdsi-inap.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "ohdsi-inap.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "ohdsi-inap.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "ohdsi-inap.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: WEBAPI_URL
+              value: /WebAPI/
+        - name: {{ .Chart.Name }}-webapi
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.webApiImage.repository }}:{{ .Values.webApiImage.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.webApiImage.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.webApiResources | nindent 12 }}
+          env:
+            - name: DATASOURCE_DRIVERCLASSNAME
+              value: org.postgresql.Driver
+            - name: DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: datasource_url
+                  name: {{ include "ohdsi-inap.fullname" . }}-secrets
+            - name: DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: datasource_username
+                  name: {{ include "ohdsi-inap.fullname" . }}-secrets
+            - name: DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: datasource_password
+                  name: {{ include "ohdsi-inap.fullname" . }}-secrets
+            - name: DATASOURCE_OHDSI_SCHEMA
+              value: ohdsi
+            - name: SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA
+              value: ohdsi
+            - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+              value: org.hibernate.dialect.PostgreSQLDialect
+            - name: SPRING_BATCH_REPOSITORY_TABLEPREFIX
+              value: ohdsi.BATCH_
+            - name: FLYWAY_DATASOURCE_DRIVERCLASSNAME
+              value: org.postgresql.Driver
+            - name: FLYWAY_SCHEMAS
+              value: ohdsi
+            - name: FLYWAY_PLACEHOLDERS_OHDSISCHEMA
+              value: ohdsi
+            - name: FLYWAY_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: datasource_url
+                  name: {{ include "ohdsi-inap.fullname" . }}-secrets
+            - name: FLYWAY_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: datasource_username
+                  name: {{ include "ohdsi-inap.fullname" . }}-secrets
+            - name: FLYWAY_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: datasource_password
+                  name: {{ include "ohdsi-inap.fullname" . }}-secrets
+            - name: SECURITY_PROVIDER
+              value: DisabledSecurity
+            - name: SERVER_PORT
+              value: "8081"
+        {{- if eq .Values.postgres.host "localhost" }}
+        - name: {{ .Chart.Name }}-postgres
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5432
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: datasource_password
+                  name: {{ include "ohdsi-inap.fullname" . }}-secrets
+        {{- end}}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
