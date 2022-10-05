@@ -1,4 +1,11 @@
 FROM ohdsi/atlas:latest
 
-COPY --chown=101 config-local.js /usr/share/nginx/html/atlas/js/config-local.js
+USER root
 COPY nginx-default.conf  /etc/nginx/conf.d/default.conf
+COPY entrypoint.sh ./entrypoint.sh
+
+RUN chmod +x ./entrypoint.sh && \
+    chown nginx:root ./entrypoint.sh
+
+USER $UID
+CMD ["/bin/sh", "-c", "./entrypoint.sh"]
