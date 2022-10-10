@@ -53,8 +53,8 @@ spec:
         - name: {{ .Chart.Name }}-webapi
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.webApiImage.repository }}:{{ .Values.webApiImage.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.webApiImage.pullPolicy }}
+          image: "{{ .Values.webapi.image.repository }}:{{ .Values.webapi.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.webapi.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 8080
@@ -68,7 +68,7 @@ spec:
               path: /
               port: http
           resources:
-            {{- toYaml .Values.webApiResources | nindent 12 }}
+            {{- toYaml .Values.webapi.resources | nindent 12 }}
           env:
             - name: DATASOURCE_DRIVERCLASSNAME
               value: org.postgresql.Driver
@@ -88,19 +88,19 @@ spec:
                   key: datasource_password
                   name: {{ include "ohdsi-inap.fullname" . }}-secrets
             - name: DATASOURCE_OHDSI_SCHEMA
-              value: ohdsi
+              value: webapi
             - name: SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA
-              value: ohdsi
+              value: webapi
             - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
               value: org.hibernate.dialect.PostgreSQLDialect
             - name: SPRING_BATCH_REPOSITORY_TABLEPREFIX
-              value: ohdsi.BATCH_
+              value: webapi.BATCH_
             - name: FLYWAY_DATASOURCE_DRIVERCLASSNAME
               value: org.postgresql.Driver
             - name: FLYWAY_SCHEMAS
-              value: ohdsi
+              value: webapi
             - name: FLYWAY_PLACEHOLDERS_OHDSISCHEMA
-              value: ohdsi
+              value: webapi
             - name: FLYWAY_DATASOURCE_URL
               valueFrom:
                 secretKeyRef:
