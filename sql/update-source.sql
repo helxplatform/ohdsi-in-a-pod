@@ -11,9 +11,9 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE PROCEDURE update_sources_db(dbname text)
+CREATE OR REPLACE PROCEDURE update_sources_db(dbname text,ohdsi_pw text)
 AS $$
 BEGIN
-  CALL update_sources('webapi','postgresql.ohdsi-dev',dbname,'ohdsi','admin1');
+  CALL update_sources('webapi','postgresql.ohdsi-dev',dbname,'ohdsi',ohdsi_pw);
 END;
 $$ LANGUAGE 'plpgsql';
